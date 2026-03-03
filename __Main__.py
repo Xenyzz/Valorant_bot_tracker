@@ -1,7 +1,8 @@
 from collections import defaultdict
 from ssl import cert_time_to_seconds
 
-import tracker
+import tracker as val_api
+
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -14,7 +15,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
-
+GUILD_ID = 945118071574642699
 bot = commands.Bot(command_prefix="/", intents=intents)
 
 
@@ -34,15 +35,44 @@ class Admin:
 @bot.event
 async def on_ready():
     print(f"Бот запущен как {bot.user}")
+    await bot.tree.sync()
+    guild = discord.Object(id=GUILD_ID)
+    bot.tree.copy_global_to(guild=guild)
+    await bot.tree.sync(guild=guild)
+    print("Synced to guild", GUILD_ID)
 
 @bot.tree.command(name="tracker")
-@app_commands.describe(query="Enter your valorant nametag to display your stats")
+@app_commands.describe(nametag="Enter your valorant nametag to display your stats")
 async def tracker(interaction : discord.Interaction, nametag : str):
-    await interaction.response.send_message(f"ты ввел")
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send("Pong!")
+    player_data = val_api.get_users_info(nametag)
+    rank_data = val_api.get_api_mmr(nametag)
+    peak_rank = val_api.get_max_rank(rank_data)
+    current_rank = val_api.get_current_rank(rank_data)
+
+    embed = discord.Embed(
+        title="peak rating",
+        description=f"{peak_rank[0]}, {peak_rank[1].upper()}", # first element - rank name, second element - seasons when peak has gotten
+        color=discord.Color.blue()
+    )
+
+    embed.add_field(
+        name=f"current rating",
+        value=f"{current_rank[0]}, {current_rank[1]}", # first element - rank name, second element - current rr
+        inline = False
+    )
+
+    embed.add_field(
+        name=f"account_level",
+        value=f"{player_data.get("account_level")}",
+        inline=False
+    )
+
+    embed.set_footer(text=f"Last updated:{player_data.get("last_updated")}")
+    embed.set_thumbnail(url=player_data.get("card"))
+
+    await interaction.response.send_message(embed=embed)
+
 
 @bot.command()
 async def add_admin(ctx, member : discord.Member):
@@ -52,8 +82,6 @@ async def add_admin(ctx, member : discord.Member):
         return
     await ctx.send(f"недостаточно прав")
 
-@bot.command()
-async def tracker(ctx, )
 
 
 @bot.event

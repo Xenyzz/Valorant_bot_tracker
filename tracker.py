@@ -12,7 +12,8 @@ headers = {
 
 #==================== to get user info (pfp, name, etc) =============================
 
-def get_user(name : str, tag : str):
+def get_user(nametag : str):
+    name, tag = nametag.split("#")
     response_account = requests.get(
         f"https://api.henrikdev.xyz/valorant/v1/account/{name}/{tag}",
         headers=headers
@@ -22,14 +23,15 @@ def get_user(name : str, tag : str):
         return player_acc
     return None
 
-def get_users_info(player_acc : dict) -> dict | None:
+def get_users_info(nametag : str) -> dict | None:
+    player_acc = get_user(nametag)
     player_data = player_acc.get("data")
     if not player_data:
         return None
 
     account_lvl = player_data.get("account_level") #account level
     card = player_data.get("card", {}).get("small") #card picture pfp
-    last_updated = player_data.get("last_updated")
+    last_updated = player_data.get("last_update")
     name = player_data.get("name")
     tag = player_data.get("tag")
 
@@ -41,10 +43,10 @@ def get_users_info(player_acc : dict) -> dict | None:
         "last_updated": last_updated
     }
 
-
 #==================== to get user mmr (rank, peak, current) =============================
 
-def get_api_mmr(name : str, tag : str) -> dict | None :
+def get_api_mmr(nametag : str) -> dict | None :
+    name, tag = nametag.split("#")
     response_account_mmr = requests.get(
         f"https://api.henrikdev.xyz/valorant/v3/mmr/eu/pc/{name}/{tag}",
         headers=headers
@@ -54,19 +56,45 @@ def get_api_mmr(name : str, tag : str) -> dict | None :
         return player_mmr
     return None
 
-def get_max_rank(player_mmr : dict) -> tuple | None:
+def get_max_rank(player_mmr : dict) -> tuple :
     peak = player_mmr.get("data", {}).get("peak")
     if not peak:
-        return None
+        return "Never calibrated", "-"
     highest_rank = peak.get("tier", {}).get("name")
     season = peak.get("season", {}).get("short")
     return highest_rank, season
 
-def get_current_rank(player_mmr : dict):
-    player_data = player_mmr["data"]["current_data"]
-    return None
+def get_current_rank(player_mmr : dict) -> tuple:
+    player_data = player_mmr.get("data")
+    current_rank = player_data.get("current", {}).get("tier", {}).get("name")
+    current_rr = player_data.get("current").get("rr")
+    return current_rank, current_rr
 
-player = get_user(name="Xenyzz", tag="rizz")
-print(get_users_info(player))
+
+if __name__ == "__main__":
+    name = "alisanesedaya"
+    tag = "ttv"
+    region = "eu"
+    platform = "pc"
+    response_account = requests.get(
+        f"https://api.henrikdev.xyz/valorant/v1/stored-matches/{region}/{name}/{tag}",
+        headers=headers
+    )
+    response_account = response_account.json()
+
+    current_act_data = []
+    for match in response_account.get("data"):
+        match_act = match.get("meta", {}).get("season", {}).get("short")
+        match_mode = match.get("meta", {}).get("mode")
+        if  match_act == "e11a1" and match_mode == "Competitive":
+            current_act_data.append(match)
 
 
+
+    print(len(current_act_data))
+
+    #
+    # for match in current_act_data:
+    #     match_stats = match.get("stats")
+    #     if match_stats:
+    #         rank = match_stats.get("rank")

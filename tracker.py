@@ -19,8 +19,7 @@ def get_user(nametag : str):
         headers=headers
     )
     if response_account.status_code == 200:
-        player_acc = response_account.json()
-        return player_acc
+        return response_account.json()
     return None
 
 def get_users_info(nametag : str) -> dict | None:
@@ -52,8 +51,7 @@ def get_api_mmr(nametag : str) -> dict | None :
         headers=headers
     )
     if response_account_mmr.status_code == 200:
-        player_mmr = response_account_mmr.json()
-        return player_mmr
+        return response_account_mmr.json()
     return None
 
 def get_max_rank(player_mmr : dict) -> tuple :
@@ -70,31 +68,37 @@ def get_current_rank(player_mmr : dict) -> tuple:
     current_rr = player_data.get("current").get("rr")
     return current_rank, current_rr
 
+#==================== to get user stats (k/d ratio, winrate) =============================
+
+def get_match_list(nametag : str) -> dict | None:
+    name, tag = nametag.split("#")
+    response_account = requests.get(
+        f"https://api.henrikdev.xyz/valorant/v1/stored-matches/eu/{name}/{tag}",
+        headers=headers,
+        params={
+            "mode": "competitive"
+        }
+    )
+    if response_account.status_code == 200:
+        return response_account.json()
+    return None
+
+
+def get_player_stats(player_matches : dict) -> float:
+    act_kills = 0
+    act_deaths = 0
+    for match in player_matches.get("data"):
+        match_act = match.get("meta", {}).get("season", {}).get("short")
+        if  match_act == "e11a1":
+            act_kills += match.get("stats", {}).get("kills")
+            act_deaths += match.get("stats", {}).get("deaths")
+
+    return round((act_kills/act_deaths), 2)
+
 
 if __name__ == "__main__":
-    name = "alisanesedaya"
-    tag = "ttv"
-    region = "eu"
-    platform = "pc"
-    response_account = requests.get(
-        f"https://api.henrikdev.xyz/valorant/v1/stored-matches/{region}/{name}/{tag}",
-        headers=headers
-    )
-    response_account = response_account.json()
-
-    current_act_data = []
-    for match in response_account.get("data"):
-        match_act = match.get("meta", {}).get("season", {}).get("short")
-        match_mode = match.get("meta", {}).get("mode")
-        if  match_act == "e11a1" and match_mode == "Competitive":
-            current_act_data.append(match)
+    print()
 
 
 
-    print(len(current_act_data))
 
-    #
-    # for match in current_act_data:
-    #     match_stats = match.get("stats")
-    #     if match_stats:
-    #         rank = match_stats.get("rank")

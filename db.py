@@ -1,16 +1,19 @@
 import sqlite3
 
-# conn = sqlite3.connect("user_data.db")
-# cursor = conn.cursor()
-#
-#
-# cursor.execute("""
-# CREATE TABLE IF NOT EXISTS User_profile(
-#     Discord_ID INTEGER PRIMARY KEY,
-#     nametag TEXT NOT NULL,
-#     user_description TEXT
-# );
-# """)
+conn = sqlite3.connect("user_data.db")
+cursor = conn.cursor()
+
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS User_profile(
+    Discord_ID INTEGER PRIMARY KEY,
+    nametag TEXT NOT NULL,
+    user_description TEXT
+);
+""")
+
+conn.commit()
+conn.close()
 
 
 def sqlite_conn(func):
@@ -49,15 +52,13 @@ def edit_user(*, cursor, discord_id : int, valorant_nametag : str = None, user_d
 
 
 @sqlite_conn
-def show_table(*, cursor) -> list | None :
+def show_table(*, cursor, discord_id : int) -> list | None :
     try:
         cursor.execute("""
-                       SELECT * FROM User_profile;
-                       """)
-        return cursor.fetchall()
+                       SELECT * FROM User_profile WHERE discord_id = ?;
+                       """, (discord_id,))
+        return cursor.fetchone()
     except sqlite3.OperationalError:
         return None
 
-
-edit_user(discord_id=12287655812, valorant_nametag="Xenyz#rizz", user_description="LFT main agenst are sova and sage")
-print(show_table())
+print(show_table(discord_id=586089725794975745))
